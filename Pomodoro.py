@@ -1,35 +1,39 @@
 import time
 import os
+from contextlib import redirect_stdout, redirect_stderr
 from pygame import mixer
-import keyboard  # New import for keypress detection
+import keyboard
+
+# Suppress pygame welcome message
+with open(os.devnull, 'w') as f:
+    with redirect_stdout(f), redirect_stderr(f):
+        mixer.init()
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def timer(minutes, label, audio_file):
+def timer(minutes, label, audio_file, cycle_info=""):
     seconds = minutes * 60
     start_time = time.time()
     while seconds > 0:
-        if keyboard.is_pressed('q'):  # Check if 'q' is pressed to quit
+        if keyboard.is_pressed('q'):
             print("\nTimer stopped by user.")
-            return False  # Signal to stop the session
+            return False
         mins, secs = divmod(seconds, 60)
         time_display = f"{label}: {mins:02d}:{secs:02d} (Press 'q' to quit)"
-        clear_screen()
-        print(time_display)
+        # Print cycle info (if provided) and timer on the same line, overwrite with \r
+        print(f"{cycle_info}\n{time_display}", end='\r', flush=True)
         time.sleep(1)
         elapsed = time.time() - start_time
-        seconds = int(minutes * 60 - elapsed)  # Adjust for real elapsed time
-    clear_screen()
-    print(f"{label} complete!")
+        seconds = int(minutes * 60 - elapsed)
+    print(f"\n{label} complete!")  # Newline after completion
     try:
-        mixer.init()
         mixer.music.load(audio_file)
         mixer.music.play()
         time.sleep(2)
     except Exception as e:
         print(f"Could not play sound: {e}")
-    return True  # Timer completed normally
+    return True
 
 def get_positive_int(prompt, default):
     while True:
@@ -62,7 +66,7 @@ def get_settings():
         print("1-5: Modify a setting")
         print("s: Start with these settings")
         print("q: Quit")
-
+        
         choice = input("\nEnter your choice: ").lower()
         if choice == 's':
             return settings
@@ -84,19 +88,22 @@ def get_settings():
             time.sleep(1)
 
 def pomodoro_cycle(work_time, short_break, long_break, total_cycles, audio_file):
+    clear_screen()  # Clear once at the start of the session
     cycles = 0
+    session_info = f"Session: Work = {work_time}m, Short Break = {short_break}m, Long Break = {long_break}m, Total Cycles = {total_cycles}"
     while cycles < total_cycles:
         cycles += 1
-        print(f"\nCycle {cycles} of {total_cycles}")
-        if not timer(work_time, "Work Time", audio_file):
-            break  # Exit if timer was stopped
+        cycle_info = f"{session_info}\nCycle {cycles} of {total_cycles}"
+        print(cycle_info)  # Print persistent info
+        if not timer(work_time, "Work Time", audio_file, cycle_info):
+            break
         if cycles % 4 == 0 and cycles < total_cycles:
             print("Time for a long break!")
-            if not timer(long_break, "Long Break", audio_file):
+            if not timer(long_break, "Long Break", audio_file, cycle_info):
                 break
         elif cycles < total_cycles:
             print("Time for a short break!")
-            if not timer(short_break, "Short Break", audio_file):
+            if not timer(short_break, "Short Break", audio_file, cycle_info):
                 break
     completed_cycles = cycles if cycles == total_cycles else cycles - 1
     print(f"\nPomodoro session ended. You completed {completed_cycles} of {total_cycles} cycles.")
