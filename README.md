@@ -1,6 +1,9 @@
 # Pomodoro App
 The app to study with the Pomodoro method
 
+It runs on Python3
+Command Python Pomodoro.py
+
 to note
 the file alert.mp3 should stay in the same directory as the .py file otherwise it doesn't make any sound
 
