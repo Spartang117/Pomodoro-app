@@ -12,21 +12,26 @@ with open(os.devnull, 'w') as f:
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def timer(minutes, label, audio_file, cycle_info=""):
+def timer(minutes, label, audio_file, header=""):
     seconds = minutes * 60
     start_time = time.time()
+    # Print header once at the start of the timer
+    if header:
+        print(header)
     while seconds > 0:
         if keyboard.is_pressed('q'):
             print("\nTimer stopped by user.")
             return False
         mins, secs = divmod(seconds, 60)
         time_display = f"{label}: {mins:02d}:{secs:02d} (Press 'q' to quit)"
-        # Print cycle info (if provided) and timer on the same line, overwrite with \r
-        print(f"{cycle_info}\n{time_display}", end='\r', flush=True)
+        # Overwrite the timer line in place
+        print(time_display, end='\r', flush=True)
         time.sleep(1)
         elapsed = time.time() - start_time
         seconds = int(minutes * 60 - elapsed)
-    print(f"\n{label} complete!")  # Newline after completion
+    # Clear the line and print completion
+    print(" " * 50)  # Clear the timer line
+    print(f"{label} complete!")
     try:
         mixer.music.load(audio_file)
         mixer.music.play()
@@ -66,7 +71,7 @@ def get_settings():
         print("1-5: Modify a setting")
         print("s: Start with these settings")
         print("q: Quit")
-        
+
         choice = input("\nEnter your choice: ").lower()
         if choice == 's':
             return settings
@@ -88,22 +93,22 @@ def get_settings():
             time.sleep(1)
 
 def pomodoro_cycle(work_time, short_break, long_break, total_cycles, audio_file):
-    clear_screen()  # Clear once at the start of the session
-    cycles = 0
+    clear_screen()  # Clear once at session start
     session_info = f"Session: Work = {work_time}m, Short Break = {short_break}m, Long Break = {long_break}m, Total Cycles = {total_cycles}"
+    print(session_info)  # Print session info once
+    cycles = 0
     while cycles < total_cycles:
         cycles += 1
-        cycle_info = f"{session_info}\nCycle {cycles} of {total_cycles}"
-        print(cycle_info)  # Print persistent info
-        if not timer(work_time, "Work Time", audio_file, cycle_info):
+        header = f"Cycle {cycles} of {total_cycles}"
+        if not timer(work_time, "Work Time", audio_file, header):
             break
         if cycles % 4 == 0 and cycles < total_cycles:
             print("Time for a long break!")
-            if not timer(long_break, "Long Break", audio_file, cycle_info):
+            if not timer(long_break, "Long Break", audio_file, header):
                 break
         elif cycles < total_cycles:
             print("Time for a short break!")
-            if not timer(short_break, "Short Break", audio_file, cycle_info):
+            if not timer(short_break, "Short Break", audio_file, header):
                 break
     completed_cycles = cycles if cycles == total_cycles else cycles - 1
     print(f"\nPomodoro session ended. You completed {completed_cycles} of {total_cycles} cycles.")
